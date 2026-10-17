@@ -18,6 +18,12 @@
   h1 { font-size: 26px; font-weight: 600; margin-bottom: 6px; }
   .sub { font-size: 15px; color: #8a7d99; margin-bottom: 24px; line-height: 1.4; }
 
+  /* ---------- экраны ---------- */
+  .screen { display: none; }
+  .screen.active { display: block; animation: fadeIn .4s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+  /* ---------- карточки ---------- */
   .card {
     display: flex; align-items: center; gap: 14px;
     background: #fff;
@@ -68,19 +74,71 @@
     background: #e2d9ee; color: #a99dbb; box-shadow: none; cursor: default;
   }
   .hint { text-align: center; font-size: 13px; color: #a99dbb; margin-top: 14px; line-height: 1.5; }
+
+  /* ---------- вторая страничка ---------- */
+  .love-box {
+    background: #fff;
+    border-radius: 22px;
+    padding: 28px 22px;
+    box-shadow: 0 8px 28px rgba(150, 110, 210, .12);
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .love-heart { font-size: 48px; line-height: 1; margin-bottom: 16px; animation: beat 1.4s ease-in-out infinite; }
+  @keyframes beat { 0%,100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+  .love-title { font-size: 22px; font-weight: 600; margin-bottom: 12px; }
+  .love-text {
+    font-size: 15px; line-height: 1.6; color: #6b5d7d;
+    margin-bottom: 10px;
+  }
+  .love-text strong { color: #a97bea; }
+  .love-list {
+    text-align: left; background: #faf6ff; border-radius: 14px;
+    padding: 14px 16px; margin: 18px 0;
+    font-size: 14px; line-height: 1.5; color: #4a3f55;
+  }
+  .love-list .item { display: flex; gap: 8px; margin-bottom: 6px; }
+  .love-list .item:last-child { margin-bottom: 0; }
+
+  .back-link {
+    display: block; text-align: center; margin-top: 16px;
+    font-size: 13px; color: #a99dbb; cursor: pointer;
+    text-decoration: underline;
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>Привет, любимая ❤️</h1>
-  <p class="sub">Ты сегодня много сделала. Выбери, что поможет тебе расслабиться — и покажи мне, как пройдёт твой вечер.</p>
 
-  <div id="list"></div>
+  <!-- ================= ЭКРАН 1: ВЫБОР ================= -->
+  <div class="screen active" id="screen1">
+    <h1>Привет, любимая ❤️</h1>
+    <p class="sub">Ты сегодня много сделала. Выбери, что поможет тебе расслабиться и покажи мне, как пройдёт твой вечер.</p>
 
-  <div class="counter" id="counter"></div>
+    <div id="list"></div>
+    <div class="counter" id="counter"></div>
 
-  <button class="send" id="sendBtn" disabled onclick="sendChoice()">Показать мой вечер ❤️</button>
-  <p class="hint" id="hint">Откроется Telegram — выбери меня в списке чатов, текст уже будет готов ❤️</p>
+    <button class="send" id="sendBtn" disabled onclick="goToScreen2()">Показать мой вечер ❤️</button>
+    <p class="hint">Дальше будет маленький сюрприз 😊</p>
+  </div>
+
+  <!-- ================= ЭКРАН 2: ПЕРЕСЛАТЬ ================= -->
+  <div class="screen" id="screen2">
+    <div class="love-box">
+      <div class="love-heart">❤️</div>
+      <div class="love-title">Я скучаю по тебе</div>
+      <p class="love-text">Ты выбрала свой вечер и я очень хочу узнать, как он пройдёт.</p>
+      <p class="love-text"><strong>Я люблю тебя</strong> и очень жду дома. Каждая минута без тебя слишком долгая.</p>
+
+      <div class="love-list" id="chosenList"></div>
+
+      <button class="send" id="shareBtn" onclick="shareToTelegram()">Переслать мне в Telegram ❤️</button>
+      <p class="hint">Откроется Telegram выбери меня в списке чатов. Текст уже будет готов.</p>
+    </div>
+
+    <span class="back-link" onclick="goToScreen1()">← вернуться и изменить выбор</span>
+  </div>
+
 </div>
 
 <script>
@@ -96,15 +154,13 @@
     { id: 'sleep',    icon: '😴', label: 'И напоследок ляжем вместе спатюшки в звоночке' }
   ];
 
-  // ←←← ЗАМЕНИ НА СВОЙ НОМЕР В МЕЖДУНАРОДНОМ ФОРМАТЕ (с +) →→→
-  const MY_PHONE = '+79619482168';
-
   const KEY = 'eveningChoice';
   let selected = new Set(JSON.parse(localStorage.getItem(KEY) || '[]'));
 
   const listEl = document.getElementById('list');
   const counterEl = document.getElementById('counter');
   const sendBtn = document.getElementById('sendBtn');
+  const chosenListEl = document.getElementById('chosenList');
 
   const checkSVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
@@ -141,22 +197,45 @@
     }
   }
 
-  function sendChoice() {
+  /* ---------- переход на второй экран ---------- */
+  function goToScreen2() {
+    const chosen = ITEMS.filter(i => selected.has(i.id));
+    chosenListEl.innerHTML = chosen.map(i =>
+      `<div class="item"><span>${i.icon}</span><span>${i.label}</span></div>`
+    ).join('');
+    document.getElementById('screen1').classList.remove('active');
+    document.getElementById('screen2').classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function goToScreen1() {
+    document.getElementById('screen2').classList.remove('active');
+    document.getElementById('screen1').classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  /* ---------- пересылка в Telegram ---------- */
+  function shareToTelegram() {
     const chosen = ITEMS.filter(i => selected.has(i.id));
     const lines = chosen.map(i => i.icon + ' ' + i.label).join('\n');
-    const text = 'Мой вечер:\n' + lines;
+
+    const text =
+      'Мой вечер:\n' + lines + '\n\n' +
+      'Я скучаю по тебе ❤️\n' +
+      'Я люблю тебя и очень жду дома.';
+
     const encoded = encodeURIComponent(text);
 
-    // Копируем в буфер — запасной вариант, если Telegram не подставит сам
+    // Запасной вариант — копируем в буфер
     navigator.clipboard.writeText(text).catch(() => {});
 
-    // Открываем Telegram с выбором чата и подготовленным текстом.
-    // Она сама выберет тебя из списка — это надёжный способ для обычных аккаунтов.
+    // Открываем Telegram с выбором чата
     const tgLink = `https://t.me/share/url?url=&text=${encoded}`;
     window.open(tgLink, '_blank');
 
-    sendBtn.textContent = 'Открываю Telegram ❤️';
-    setTimeout(() => { sendBtn.textContent = 'Показать мой вечер ❤️'; }, 3000);
+    const btn = document.getElementById('shareBtn');
+    btn.textContent = 'Открываю Telegram ❤️';
+    setTimeout(() => { btn.textContent = 'Переслать мне в Telegram ❤️'; }, 3000);
   }
 
   render();
